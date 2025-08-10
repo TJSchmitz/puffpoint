@@ -20,7 +20,9 @@ service cloud.firestore {
 
     match /spots/{spotId} {
       allow read: if isSignedIn() && resource.data.status == 'active';
-      allow create: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.keys().hasAll(['title','coords','legalStatus']) &&
+        request.resource.data.legalStatus in ['allowed','restricted','forbidden'];
       allow update, delete: if isOwner(resource.data) || isMod() || isAdmin();
     }
 

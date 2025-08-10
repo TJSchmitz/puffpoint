@@ -20,3 +20,15 @@ jobs:
         run: flutter analyze
       - name: Run tests
         run: flutter test
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Functions deps
+        run: |
+          cd libapp/firebase/functions
+          npm ci
+      - name: Build Functions
+        run: |
+          cd libapp/firebase/functions
+          npm run build

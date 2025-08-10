@@ -38,7 +38,7 @@ class _PhotoUploaderState extends State<PhotoUploader> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto hochgeladen (pending)')),
+          const SnackBar(content: Text('Foto hochgeladen (pending). Sichtbar nach Freigabe.')),
         );
       }
     } finally {

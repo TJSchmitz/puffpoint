@@ -65,40 +65,39 @@ final seedSpotsProvider = Provider<Future<void> Function()>((ref) {
 
 final createSpotProvider =
     Provider<
-      Future<void> Function({
-        required String title,
-        required String description,
-        required GeoPoint coords,
-        String? address,
-        required String legalStatus,
-        List<Map<String, String>>? timeWindows,
-        List<String>? tags,
-      })
-    >((ref) {
-      return ({
-        required String title,
-        required String description,
-        required GeoPoint coords,
-        String? address,
-        required String legalStatus,
-        List<Map<String, String>>? timeWindows,
-        List<String>? tags,
-      }) async {
-        final fs = ref.read(firestoreProvider);
-        final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
-        await fs.collection('spots').add({
-          'title': title,
-          'description': description,
-          'coords': coords,
-          'address': address,
-          'legalStatus': legalStatus,
-          'timeWindows': timeWindows ?? [],
-          'tags': tags ?? [],
-          'avgRating': 0.0,
-          'ratingsCount': 0,
-          'createdBy': uid,
-          'createdAt': FieldValue.serverTimestamp(),
-          'status': 'active',
-        });
-      };
+        Future<void> Function({
+          required String title,
+          required String description,
+          required GeoPoint coords,
+          String? address,
+          required String legalStatus,
+          List<Map<String, String>>? timeWindows,
+          List<String>? tags,
+        })>((ref) {
+  return ({
+    required String title,
+    required String description,
+    required GeoPoint coords,
+    String? address,
+    required String legalStatus,
+    List<Map<String, String>>? timeWindows,
+    List<String>? tags,
+  }) async {
+    final fs = ref.read(firestoreProvider);
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
+    await fs.collection('spots').add({
+      'title': title,
+      'description': description,
+      'coords': coords,
+      'address': address,
+      'legalStatus': legalStatus,
+      'timeWindows': timeWindows ?? [],
+      'tags': tags ?? [],
+      'avgRating': 0.0,
+      'ratingsCount': 0,
+      'createdBy': uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'status': 'active',
     });
+  };
+});

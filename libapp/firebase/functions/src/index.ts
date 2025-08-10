@@ -1,35 +1,36 @@
 import * as admin from 'firebase-admin';
-import * as functions from 'firebase-functions';
-
 import fetch from 'node-fetch';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onObjectFinalized } from 'firebase-functions/v2/storage';
 
 admin.initializeApp();
 const db = admin.firestore();
+const storage = admin.storage();
 
-export const setRole = functions.https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Auth required');
-  const requesterUid = context.auth.uid;
+export const setRole = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+  const requesterUid = request.auth.uid;
   const requester = await admin.auth().getUser(requesterUid);
   const reqClaims = requester.customClaims || {};
   if (!reqClaims['admin']) {
-    throw new functions.https.HttpsError('permission-denied', 'Admin only');
+    throw new HttpsError('permission-denied', 'Admin only');
   }
-  const { uid, role, value } = data as { uid: string; role: 'admin' | 'mod'; value: boolean };
+  const { uid, role, value } = request.data as { uid: string; role: 'admin' | 'mod'; value: boolean };
   const user = await admin.auth().getUser(uid);
   const newClaims = { ...(user.customClaims || {}), [role]: !!value };
   await admin.auth().setCustomUserClaims(uid, newClaims);
   return { ok: true, claims: newClaims };
 });
 
-export const nominatimSearch = functions.https.onCall(async (data) => {
-  const q = (data?.q as string | undefined)?.trim();
-  const limit = Math.min(Number(data?.limit ?? 5), 5);
+export const nominatimSearch = onCall(async (request) => {
+  const q = (request.data?.q as string | undefined)?.trim();
+  const limit = Math.min(Number(request.data?.limit ?? 5), 5);
   if (!q) return [];
   const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=${limit}`;
   const res = await fetch(url, {
     headers: {
-      'User-Agent': 'puffpoint/0.1 (contact: support@puffpoint.app)',
-      'Accept-Language': 'de,en;q=0.8',
+      'User-Agent': 'puffpoint/1.0 (+support@puffpoint.app) Functions/Node',
+      'Accept-Language': 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7',
       'Cache-Control': 'max-age=3600',
     },
   });
@@ -37,32 +38,68 @@ export const nominatimSearch = functions.https.onCall(async (data) => {
   return json;
 });
 
-export const moderatePhoto = functions.https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Auth required');
-  const uid = context.auth.uid;
+export const moderatePhoto = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Auth required');
+  const uid = request.auth.uid;
   const user = await admin.auth().getUser(uid);
   const claims = user.customClaims || {};
-  if (!claims['admin'] && !claims['mod']) throw new functions.https.HttpsError('permission-denied', 'Mod/Admin only');
+  if (!claims['admin'] && !claims['mod']) throw new HttpsError('permission-denied', 'Mod/Admin only');
 
-  const { photoId, action } = data as { photoId: string; action: 'approve' | 'reject' };
+  const { photoId, action } = request.data as { photoId: string; action: 'approve' | 'reject' };
   const photoRef = db.collection('spotPhotos').doc(photoId);
   const snap = await photoRef.get();
-  if (!snap.exists) throw new functions.https.HttpsError('not-found', 'Photo not found');
-  const photo = snap.data()!;
+  if (!snap.exists) throw new HttpsError('not-found', 'Photo not found');
+  const photo = snap.data()! as any;
 
   if (action === 'approve') {
-    // Stub: simulate approve by setting approved and moving path under spots/{spotId}
     const srcPath = photo.storagePath as string;
     const destPath = `spots/${photo.spotId}/${srcPath.split('/').pop()}`;
-    // NOTE: In real impl, copy in Storage and generate thumb
+    await copyStorageObject(srcPath, destPath);
+    const thumbPath = await generateThumbnail(destPath);
     await photoRef.update({
       storagePath: destPath,
+      thumbPath,
       'moderation.status': 'approved',
       'moderation.reason': null,
     });
+    // best-effort cleanup of tmp source
+    await deleteStorageObject(srcPath).catch(() => undefined);
   } else {
     await photoRef.update({ 'moderation.status': 'rejected', 'moderation.reason': 'Rejected by admin' });
   }
 
   return { ok: true };
 });
+
+export const onPhotoUploaded = onObjectFinalized(async (event) => {
+  const filePath = event.data.name;
+  if (!filePath) return;
+  // Only act on tmp uploads. Metadata linking to spot is in Firestore doc
+  if (!filePath.startsWith('tmp/')) return;
+  // No-op here; moderation flow will move/copy after approval.
+});
+
+async function copyStorageObject(srcPath: string, destPath: string): Promise<void> {
+  const bucket = storage.bucket();
+  await bucket.file(srcPath).copy(bucket.file(destPath));
+}
+
+async function deleteStorageObject(path: string): Promise<void> {
+  const bucket = storage.bucket();
+  await bucket.file(path).delete({ ignoreNotFound: true });
+}
+
+async function generateThumbnail(path: string): Promise<string> {
+  const bucket = storage.bucket();
+  const file = bucket.file(path);
+  const [exists] = await file.exists();
+  if (!exists) return path;
+  const tmp = `/tmp/${Date.now()}_${path.split('/').pop()}`;
+  const tmpOut = `${tmp}_thumb.jpg`;
+  await file.download({ destination: tmp });
+  const sharp = (await import('sharp')).default;
+  await sharp(tmp).resize(500, 500, { fit: 'inside' }).jpeg({ quality: 80 }).toFile(tmpOut);
+  const thumbPath = path.replace(/(\.[a-zA-Z0-9]+)?$/, (m) => `_thumb${m || '.jpg'}`);
+  await bucket.upload(tmpOut, { destination: thumbPath, contentType: 'image/jpeg' });
+  return thumbPath;
+}

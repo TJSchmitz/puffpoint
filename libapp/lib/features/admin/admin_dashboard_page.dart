@@ -10,14 +10,15 @@ class AdminDashboardPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Admin')),
       body: DefaultTabController(
-        length: 2,
+        length: 3,
         child: Column(
           children: [
-            const TabBar(tabs: [Tab(text: 'Pending Photos'), Tab(text: 'Reports')]),
+            const TabBar(tabs: [Tab(text: 'Pending Photos'), Tab(text: 'Reports'), Tab(text: 'Roles')]),
             Expanded(
               child: TabBarView(children: [
                 _PendingPhotosTab(),
                 _ReportsTab(),
+                _RolesTab(),
               ]),
             ),
           ],
@@ -92,6 +93,77 @@ class _ReportsTab extends StatelessWidget {
               .toList(),
         );
       },
+    );
+  }
+}
+
+class _RolesTab extends StatefulWidget {
+  @override
+  State<_RolesTab> createState() => _RolesTabState();
+}
+
+class _RolesTabState extends State<_RolesTab> {
+  final uidController = TextEditingController();
+  bool loading = false;
+
+  @override
+  void dispose() {
+    uidController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _setRole(String role, bool value) async {
+    if (uidController.text.trim().isEmpty) return;
+    setState(() => loading = true);
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('setRole');
+      await callable.call({
+        'uid': uidController.text.trim(),
+        'role': role,
+        'value': value,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Role updated')));
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: uidController,
+            decoration: const InputDecoration(labelText: 'User UID'),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: [
+              ElevatedButton(
+                onPressed: loading ? null : () => _setRole('admin', true),
+                child: const Text('Grant admin'),
+              ),
+              ElevatedButton(
+                onPressed: loading ? null : () => _setRole('admin', false),
+                child: const Text('Revoke admin'),
+              ),
+              ElevatedButton(
+                onPressed: loading ? null : () => _setRole('mod', true),
+                child: const Text('Grant mod'),
+              ),
+              ElevatedButton(
+                onPressed: loading ? null : () => _setRole('mod', false),
+                child: const Text('Revoke mod'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

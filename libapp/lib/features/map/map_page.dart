@@ -15,6 +15,8 @@ import '../../common/services/external_maps.dart';
 import '../reviews/review_form.dart';
 import '../photos/photo_uploader.dart';
 
+const bool kUseEmulators = bool.fromEnvironment('USE_EMULATORS', defaultValue: false);
+
 class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
 
@@ -95,6 +97,15 @@ class _MapPageState extends ConsumerState<MapPage> {
             icon: const Icon(Icons.add_location_alt),
           ),
         ],
+        bottom: kUseEmulators
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(18),
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: 4),
+                  child: Text('EMULATORS', style: TextStyle(fontSize: 12, color: Colors.orange)),
+                ),
+              )
+            : null,
       ),
       body: Column(
         children: [
