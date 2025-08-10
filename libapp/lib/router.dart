@@ -5,6 +5,7 @@ import 'features/spots/spot_form_page.dart';
 import 'features/admin/admin_dashboard_page.dart';
 import 'features/lists/ui/lists_page.dart';
 import 'features/lists/repo/lists_repository.dart';
+import 'features/users/ui/profile_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -28,6 +29,10 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: 'invite',
           builder: (context, state) => InviteRedeemPage(token: state.uri.queryParameters['token']),
+        ),
+        GoRoute(
+          path: 'profile',
+          builder: (context, state) => const ProfilePage(),
         ),
       ],
     ),

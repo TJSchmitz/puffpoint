@@ -101,6 +101,10 @@ class _MapPageState extends ConsumerState<MapPage> {
             onPressed: () => context.push('/lists'),
             icon: const Icon(Icons.playlist_add_check),
           ),
+          IconButton(
+            onPressed: () => context.push('/profile'),
+            icon: const Icon(Icons.account_circle),
+          ),
         ],
       ),
       body: Column(

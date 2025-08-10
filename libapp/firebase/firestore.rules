@@ -42,7 +42,7 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isSignedIn() && uid == request.auth.uid;
+      allow read: if isSignedIn() && (uid == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && uid == request.auth.uid;
       allow update: if isSignedIn() && uid == request.auth.uid;
     }
