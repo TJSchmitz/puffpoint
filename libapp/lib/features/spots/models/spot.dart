@@ -31,7 +31,7 @@ class Spot {
     required this.status,
   });
 
-  factory Spot.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+  static Spot fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return Spot(
       id: doc.id,

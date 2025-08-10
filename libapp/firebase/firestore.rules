@@ -46,5 +46,40 @@ service cloud.firestore {
       allow create: if isSignedIn() && uid == request.auth.uid;
       allow update: if isSignedIn() && uid == request.auth.uid;
     }
+
+    // Lists
+    function isListReader(list) {
+      return isSignedIn() && (list.ownerId == request.auth.uid || (list.members[request.auth.uid] in ['view', 'edit']));
+    }
+
+    function isListEditor(list) {
+      return isSignedIn() && (list.ownerId == request.auth.uid || (list.members[request.auth.uid] == 'edit'));
+    }
+
+    match /lists/{listId} {
+      allow read: if isListReader(resource.data);
+      allow create: if isSignedIn()
+                   && request.resource.data.ownerId == request.auth.uid
+                   && request.resource.data.visibility == 'private'
+                   && request.resource.data.keys().hasOnly(['name','ownerId','visibility','members','createdAt','updatedAt'])
+                   && request.resource.data.members == {};
+      allow update: if isListEditor(resource.data)
+                   && request.resource.data.keys().hasOnly(['name','members','updatedAt']);
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+
+      match /items/{itemId} {
+        allow read: if isListReader(get(/databases/$(database)/documents/lists/$(listId)).data);
+        allow create: if isListEditor(get(/databases/$(database)/documents/lists/$(listId)).data)
+                      && request.resource.data.keys().hasOnly(['spotId','addedBy','note','createdAt'])
+                      && request.resource.data.addedBy == request.auth.uid;
+        allow delete: if isListEditor(get(/databases/$(database)/documents/lists/$(listId)).data);
+      }
+    }
+
+    match /listInvites/{inviteId} {
+      allow read: if isListEditor(get(/databases/$(database)/documents/lists/$(resource.data.listId)).data);
+      allow create: if false; // only via callable
+      allow update, delete: if false; // only via callable
+    }
   }
 }

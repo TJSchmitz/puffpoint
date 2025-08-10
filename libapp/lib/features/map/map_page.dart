@@ -14,6 +14,9 @@ import '../spots/repo/spots_repository.dart';
 import '../../common/services/external_maps.dart';
 import '../reviews/review_form.dart';
 import '../photos/photo_uploader.dart';
+import '../lists/ui/lists_page.dart';
+import '../lists/repo/lists_repository.dart';
+import '../lists/ui/add_to_list_sheet.dart';
 
 class MapPage extends ConsumerStatefulWidget {
   const MapPage({super.key});
@@ -93,6 +96,10 @@ class _MapPageState extends ConsumerState<MapPage> {
           IconButton(
             onPressed: () => context.push('/spot/new'),
             icon: const Icon(Icons.add_location_alt),
+          ),
+          IconButton(
+            onPressed: () => context.push('/lists'),
+            icon: const Icon(Icons.playlist_add_check),
           ),
         ],
       ),
@@ -239,6 +246,23 @@ class _MapPageState extends ConsumerState<MapPage> {
                     },
                     icon: const Icon(Icons.rate_review),
                     label: const Text('Review'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final res = await showModalBottomSheet<String>(
+                        context: context,
+                        showDragHandle: true,
+                        builder: (_) => AddToListSheet(spotId: spot.id),
+                      );
+                      if (res != null && context.mounted) Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.playlist_add),
+                    label: const Text('Zu Liste hinzufügen'),
                   ),
                 ],
               ),

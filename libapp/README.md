@@ -28,8 +28,10 @@ flutter run
 - Photo upload to tmp/ -> creates pending moderation doc
 - Admin screen: pending photos approve/reject (function stubs) and reports list
 - Nominatim proxy via Cloud Function `nominatimSearch`
+- Lists: private lists with items, invite links (view/edit) via Functions `createInvite` and `redeemInvite`
 
 ## Notes
 - Replace `firebase_options.dart` with generated file.
 - Add App Check debug if needed.
 - Security rules in `firebase/firestore.rules` implement MVP constraints.
+- Deep link format: `puffpoint://invite?token=...` opens route `/invite?token=...` and triggers redemption.

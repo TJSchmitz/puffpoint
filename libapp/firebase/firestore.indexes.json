@@ -1,4 +1,13 @@
 {
-  "indexes": [],
-  "fieldOverrides": []
+  "indexes": [
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "items",
+      "fieldPath": "createdAt",
+      "indexes": [
+        { "order": "DESCENDING" }
+      ]
+    }
+  ]
 }
