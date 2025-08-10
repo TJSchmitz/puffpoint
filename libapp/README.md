@@ -29,9 +29,11 @@ flutter run
 - Admin screen: pending photos approve/reject (function stubs) and reports list
 - Nominatim proxy via Cloud Function `nominatimSearch`
 - Lists: private lists with items, invite links (view/edit) via Functions `createInvite` and `redeemInvite`
+- User Management: Profile page (avatar, display name, email/password link), Admin Users tab (list users, toggle admin/mod roles)
 
 ## Notes
 - Replace `firebase_options.dart` with generated file.
 - Add App Check debug if needed.
 - Security rules in `firebase/firestore.rules` implement MVP constraints.
 - Deep link format: `puffpoint://invite?token=...` opens route `/invite?token=...` and triggers redemption.
+- Bootstrap first admin: In Firebase Console → Authentication → Users → Edit user → set custom claims to `{ "admin": true }`, then restart the app to refresh token. Alternatively, call callable `setRole` from an admin account.

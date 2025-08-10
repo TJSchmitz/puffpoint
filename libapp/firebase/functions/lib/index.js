@@ -152,3 +152,29 @@ export const redeemInvite = functions.https.onCall(async (req) => {
     });
     return { ok: true };
 });
+export const listUsers = functions.https.onCall(async (req) => {
+    if (!req.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Auth required');
+    const requester = await admin.auth().getUser(req.auth.uid);
+    const claims = requester.customClaims || {};
+    if (!claims['admin'])
+        throw new functions.https.HttpsError('permission-denied', 'Admin only');
+    const pageSize = Math.min(Number((req.data?.pageSize ?? 20)), 50);
+    const pageToken = req.data?.pageToken ?? undefined;
+    const res = await admin.auth().listUsers(pageSize, pageToken);
+    return {
+        users: res.users.map((u) => ({
+            uid: u.uid,
+            email: u.email ?? null,
+            displayName: u.displayName ?? null,
+            photoURL: u.photoURL ?? null,
+            disabled: u.disabled ?? false,
+            customClaims: u.customClaims ?? {},
+            metadata: {
+                creationTime: u.metadata.creationTime,
+                lastSignInTime: u.metadata.lastSignInTime,
+            },
+        })),
+        pageToken: res.pageToken ?? null,
+    };
+});
