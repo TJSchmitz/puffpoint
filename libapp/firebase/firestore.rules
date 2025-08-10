@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (request.auth.token.admin == true);
+    }
+
+    function isMod() {
+      return isSignedIn() && (request.auth.token.mod == true);
+    }
+
+    function isOwner(resourceData) {
+      return isSignedIn() && resourceData.createdBy == request.auth.uid;
+    }
+
+    match /spots/{spotId} {
+      allow read: if isSignedIn() && resource.data.status == 'active';
+      allow create: if isSignedIn();
+      allow update, delete: if isOwner(resource.data) || isMod() || isAdmin();
+    }
+
+    match /spotPhotos/{photoId} {
+      allow read: if isSignedIn() && resource.data.moderation.status == 'approved';
+      allow create: if isSignedIn();
+      allow update, delete: if isOwner(resource.data) || isMod() || isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if request.auth.uid == resource.data.userId || isMod() || isAdmin();
+    }
+
+    match /reports/{reportId} {
+      allow create: if isSignedIn();
+      allow read, update: if isMod() || isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && uid == request.auth.uid;
+      allow create: if isSignedIn() && uid == request.auth.uid;
+      allow update: if isSignedIn() && uid == request.auth.uid;
+    }
+  }
+}
